@@ -1,6 +1,6 @@
 module.exports = {
   apps: [{
-    name: "warning-bot",
+    name: "Cherry",
     script: "index.js",
     watch: true,
     ignore_watch: ["node_modules", "data"],
