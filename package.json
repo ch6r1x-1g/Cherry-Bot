@@ -1,0 +1,16 @@
+{
+  "name": "practice-discord-py",
+  "version": "1.0.0",
+  "description": "<div align=\"center\">   <h1>📚</h1>   나만의 디코봇을 만들어보기 위해 공부하는 공간으로 사용 예정입니다!<br>   물론 멘토도 있으니까 뭔가 가능하지 않을까요 ?   <br>   <br>   📆 : 2024.11.19. ~ <b>Keep Going</b>   <br>   <br>   🖥️ : Not version releases yet. </div>",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "discord.js": "^14.17.3",
+    "dotenv": "^16.4.7"
+  }
+}
