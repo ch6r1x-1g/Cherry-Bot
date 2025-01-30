@@ -30,11 +30,19 @@ const createWarningModal = () => {
     .setStyle(TextInputStyle.Short)
     .setPlaceholder('경고를 부여하는 관리자를 입력해주세요');
 
+  const visibilityInput = new TextInputBuilder()
+    .setCustomId('visibility')
+    .setLabel('공개 여부 (public/private)')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('public 또는 private을 입력해주세요')
+    .setValue('public'); // 기본값 설정
+
   modal.addComponents(
     new ActionRowBuilder().addComponents(targetInput),
     new ActionRowBuilder().addComponents(warningCountInput),
     new ActionRowBuilder().addComponents(reasonInput),
-    new ActionRowBuilder().addComponents(executorInput)
+    new ActionRowBuilder().addComponents(executorInput),
+    new ActionRowBuilder().addComponents(visibilityInput)
   );
 
   return modal;
@@ -44,6 +52,7 @@ const handleWarningModal = async (interaction) => {
   const targetId = interaction.fields.getTextInputValue('target').replace(/[<@!>]/g, '');
   const reason = interaction.fields.getTextInputValue('reason');
   const executor = interaction.fields.getTextInputValue('executor');
+  const visibility = interaction.fields.getTextInputValue('visibility').toLowerCase();
   const currentTime = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
 
   // 경고 추가 및 현재 경고 수 가져오기
@@ -51,7 +60,8 @@ const handleWarningModal = async (interaction) => {
     reason,
     executor,
     executorId: interaction.user.id,
-    timestamp: currentTime
+    timestamp: currentTime,
+    visibility: visibility
   };
 
   const warningCount = await warningManager.addWarning(targetId, warning);
@@ -84,9 +94,11 @@ const handleWarningModal = async (interaction) => {
       },
       {
         name: '📜 경고 내역',
-        value: userWarnings.map((w, i) =>
-          `${i + 1}. ${w.reason} (${w.executor}) - ${new Date(w.timestamp).toLocaleString('ko-KR')}`
-        ).join('\n') || '없음',
+        value: userWarnings
+          .filter(w => w.visibility === 'public')
+          .map((w, i) =>
+            `${i + 1}. ${w.reason} (${w.executor}) - ${new Date(w.timestamp).toLocaleString('ko-KR')}`
+          ).join('\n') || '없음',
         inline: false
       }
     )
@@ -102,10 +114,37 @@ const handleWarningModal = async (interaction) => {
       text: '이의제기는 관리자에게 문의해주세요.'
     });
 
-  await interaction.reply({
-    embeds: [warningEmbed, cautionEmbed],
-    ephemeral: false
-  });
+  // visibility에 따라 다르게 응답
+  if (visibility === 'private') {
+    // 비공개 메시지로 전송
+    await interaction.reply({
+      embeds: [warningEmbed, cautionEmbed],
+      ephemeral: true
+    });
+
+    // 관리자 채널에도 로그 남기기
+    const logEmbed = new EmbedBuilder()
+      .setColor('#FF0000')
+      .setTitle('🔒 비공개 경고 발행')
+      .setDescription(`${interaction.user}님이 비공개 경고를 발행했습니다.`)
+      .addFields(
+        { name: '대상자', value: `<@${targetId}>`, inline: true },
+        { name: '경고 횟수', value: `${warningCount}회`, inline: true },
+        { name: '사유', value: reason, inline: false }
+      )
+      .setTimestamp();
+
+    await interaction.channel.send({
+      embeds: [logEmbed],
+      ephemeral: true
+    });
+  } else {
+    // 공개 메시지로 전송
+    await interaction.reply({
+      embeds: [warningEmbed, cautionEmbed],
+      ephemeral: false
+    });
+  }
 
   // 3회 이상 경고 시 알림
   if (warningCount >= 3) {
@@ -116,6 +155,25 @@ const handleWarningModal = async (interaction) => {
       .setTimestamp();
 
     await interaction.channel.send({ embeds: [alertEmbed] });
+  }
+
+  // DM으로 경고 알림 보내기
+  try {
+    const user = await interaction.client.users.fetch(targetId);
+    const dmEmbed = new EmbedBuilder()
+      .setColor('#FF0000')
+      .setTitle('⚠️ 경고 알림')
+      .setDescription(`${interaction.guild.name} 서버에서 경고를 받았습니다.`)
+      .addFields(
+        { name: '경고 사유', value: reason, inline: false },
+        { name: '현재 경고 수', value: `${warningCount}회`, inline: true },
+        { name: '경고 발행 시간', value: currentTime, inline: true }
+      )
+      .setFooter({ text: '이의가 있으시다면 관리자에게 문의해주세요.' });
+
+    await user.send({ embeds: [dmEmbed] });
+  } catch (error) {
+    console.error('DM 전송 실패:', error);
   }
 };
 
