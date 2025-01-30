@@ -5,6 +5,7 @@ const { AUTHORIZED_USERS } = require('../config/constants');
 const warningManager = require('../utils/warningManager');
 const { exec } = require('child_process');
 const path = require('path');
+const WarningHandler = require('./warningHandler');
 
 const handleCommands = async (interaction) => {
   switch (interaction.commandName) {
@@ -33,21 +34,15 @@ const handleCommands = async (interaction) => {
       break;
 
     case 'warnings':
-      const targetUser = interaction.options.getUser('user');
-      const warnings = warningManager.getWarnings(targetUser.id);
+      await WarningHandler.handleWarnings(interaction);
+      break;
 
-      const warningsEmbed = new EmbedBuilder()
-        .setColor('#0099FF')
-        .setTitle(`📋 경고 내역 - ${targetUser.tag}`)
-        .setDescription(warnings.length > 0
-          ? warnings.map((w, i) =>
-            `${i + 1}. ${w.reason} (${w.executor}) - ${new Date(w.timestamp).toLocaleString('ko-KR')}`
-          ).join('\n')
-          : '경고 내역이 없습니다.')
-        .setFooter({ text: `총 경고 수: ${warnings.length}회` })
-        .setTimestamp();
+    case 'warn':
+      await WarningHandler.handleWarn(interaction);
+      break;
 
-      await interaction.reply({ embeds: [warningsEmbed] });
+    case 'unwarn':
+      await WarningHandler.handleUnwarn(interaction);
       break;
   }
 };
