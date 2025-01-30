@@ -5,6 +5,7 @@ const { registerCommands } = require('./commands/registerCommands');
 const { handleCommands } = require('./handlers/commandHandler');
 const { handleModals } = require('./handlers/modalHandler');
 const { handleSelectMenus } = require('./handlers/selectMenuHandler');
+const RebootHandler = require('./handlers/rebootHandler');
 
 const client = new Client({
     intents: [
@@ -29,6 +30,12 @@ client.once('ready', async () => {
     });
 
     await registerCommands(client);
+
+    // 재시작 후 메시지 전송
+    if (global.rebootChannelId) {
+        await RebootHandler.handleRebootComplete(client, global.rebootChannelId);
+        global.rebootChannelId = null;
+    }
 });
 
 client.on('interactionCreate', async interaction => {

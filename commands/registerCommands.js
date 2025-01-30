@@ -1,9 +1,11 @@
 const warningCommands = require('./warningCommands');
+const rebootCommands = require('./rebootCommands');
 
 const registerCommands = async (client) => {
   try {
     const commands = [
       ...warningCommands,
+      ...rebootCommands,
       {
         name: 'sync',
         description: '슬래시 명령어 동기화'
